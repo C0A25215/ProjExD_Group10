@@ -42,7 +42,7 @@ class Maze:
     """迷路（maps.py の2次元リスト）を扱うクラス"""
 
     def __init__(self, grid: list[list[str]]):
-        self.grid = [row[:] for row in grid]  # 元のマップを書き換えないようにコピー
+        self.grid = [maps.Tile.from_str(tiles) for tiles in grid]  # 元のマップを書き換えないようにコピー
         self.h = len(self.grid)
         self.w = len(self.grid[0])
 
@@ -50,23 +50,23 @@ class Maze:
         """文字 ch のマスの座標 (x, y) を返す"""
         for y, row in enumerate(self.grid):
             for x, c in enumerate(row):
-                if c == ch:
+                if c.sign == ch:
                     return x, y
         raise ValueError(f"マップに {ch!r} がありません")
 
-    def tile(self, x: int, y: int) -> str:
-        return self.grid[y][x]
+    # def tile(self, x: int, y: int) -> str:
+    #     return self.grid[y][x]
 
     def is_walkable(self, x: int, y: int) -> bool:
         if not (0 <= x < self.w and 0 <= y < self.h):
             return False
-        return maps.TILES[self.tile(x, y)]["walkable"]
+        return self.grid[y][x].walkable
 
     def draw(self, screen: pygame.Surface) -> None:
         for y, row in enumerate(self.grid):
             for x, c in enumerate(row):
                 rect = pygame.Rect(x * CELL, y * CELL, CELL, CELL)
-                pygame.draw.rect(screen, maps.TILES[c]["color"], rect)
+                pygame.draw.rect(screen, c.color, rect)
                 pygame.draw.rect(screen, (200, 200, 190), rect, 1)
 
 
@@ -118,6 +118,7 @@ class Game:
 
     def __init__(self, grid: list[list[str]]):
         self.maze = Maze(grid)
+        self.maze_bk = Maze(grid)
         self.start = self.maze.find("S")
         self.goal = self.maze.find("G")
         self.player = Player(self.start)
@@ -187,12 +188,16 @@ class Game:
         self.message = ""
 
     # ---------- フック（追加機能はここを拡張する） ----------
-    def on_enter(self, tile: str) -> None:
+    def on_enter(self, tile: maps.Tile, x: int, y: int) -> None:
         """プレイヤーが1手動いた後に、今いるマスの文字を受け取って呼ばれる"""
-        pass
+        if tile.sign == "W":
+            self.maze.grid[y][x].color = (255, 0, 0) # 落ちた穴のマスを赤に
+            self.running = False
+            self.message = "穴に落ちてしまった..."
 
     def on_goal(self) -> None:
         """ゴールに着いたときに呼ばれる"""
+        self.maze = self.maze_bk # 迷路を初期化して穴についた色をリセット
         self.running = False
         self.message = "GOAL!"
 
@@ -220,7 +225,7 @@ class Game:
         self.timer = 0
         self.queue[self.step_index].func(self)
         self.step_index += 1
-        self.on_enter(self.maze.tile(self.player.x, self.player.y))
+        self.on_enter(self.maze.grid[self.player.y][self.player.x], self.player.x, self.player.y)
         if (self.player.x, self.player.y) == self.goal:
             self.on_goal()
         elif self.step_index >= len(self.queue):
