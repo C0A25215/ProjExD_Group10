@@ -74,7 +74,7 @@ class Player:
     """迷路を進む主人公"""
 
     def __init__(self, pos: tuple[int, int]):
-        self.image = pygame.transform.smoothscale(pygame.image.load("fig/3.png"), (CELL, CELL))
+        self.image = pygame.transform.smoothscale(pygame.image.load("fig/kouka_zukin.png"), (CELL, CELL))
         self.reset(pos)
 
     def reset(self, pos: tuple[int, int]) -> None:
