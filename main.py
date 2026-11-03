@@ -13,7 +13,7 @@ MIN_H = 600  # 画面の最小の高さ
 STEP_MS = 300  # 実行時の1手の間隔（ミリ秒）
 FPS = 60
 
-TIME_LIMIT = 60  # 制限時間（秒）
+TIMELIMIT = 60  # 制限時間（秒）
 
 BLOCK_W = 140  # ブロックの幅
 BLOCK_H = 34  # ブロックの高さ
@@ -129,8 +129,8 @@ class Game:
         self.timer = 0
         self.message = ""
 
-        self.remaining_time = TIME_LIMIT
-        self.time_up = False
+        self.remainingtime = TIMELIMIT  # 残り時間を制限時間に設定する
+        self.timeup = False   # 制限時間切れかどうかを管理する
 
         self.maze_w = self.maze.w * CELL
         self.width = self.maze_w + PANEL_W
@@ -213,12 +213,12 @@ class Game:
 
     def update(self, dt: int) -> None:
         # 制限時間を減らす
-        if not self.time_up and not self.running and not self.message:
-            self.remaining_time -= dt / 1000
-            if self.remaining_time <= 0:
-                self.remaining_time = 0
-                self.time_up = True
-                self.message = "TIME UP!"
+        if not self.timeup and not self.running and not self.message:  # 制限時間内で、実行中ではなく、メッセージも表示されていない場合
+            self.remainingtime -= dt / 1000  # 経過時間（ミリ秒）を秒に変換して残り時間から引く
+            if self.remainingtime <= 0:  # 残り時間が0以下になった場合
+                self.remainingtime = 0  # 残り時間を0秒にする
+                self.timeup = True  # 制限時間切れにする
+                self.message = "TIME UP!"  # メッセージを表示
 
         for btn in self.palette_buttons:
             btn.enabled = not self.running
@@ -257,7 +257,7 @@ class Game:
         screen.blit(self.font.render("ブロックを選ぶ", True, (40, 40, 40)), (px, 10))
 
         # 残り時間表示
-        time_text = self.font.render(f"残り時間：{int(self.remaining_time)}秒", True, (40, 40, 40))
+        time_text = self.font.render(f"残り時間：{int(self.remainingtime)}秒", True, (40, 40, 40))
         screen.blit(time_text, (px, 40))
 
         screen.blit(self.font.render(f"行動リスト ({len(self.queue)}/{self.max_queue})", True,
