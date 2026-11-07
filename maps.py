@@ -28,45 +28,41 @@ MAP1 = [
 ]
 
 class MazeGenerator:
-    """12×15のランダム迷路を穴掘り法で生成するクラス"""
+    """15×15のランダム迷路を穴掘り法で生成するクラス"""
 
     def __init__(self):
-        """迷路生成を初期化"""
+        """迷路生成サイズを設定"""
         self.width = 15
         self.height = 15
 
     def generate(self):
-        """ランダム迷路を生成
-        Returns:
-            list[list[str]]: 生成した迷路
-        """
-
+        """ランダム迷路を生成して返す"""
+        # 一度すべて壁で埋める
         self.maze = [
             ["#" for _ in range(self.width)]
             for _ in range(self.height)
         ]
-
+        #x1, y1(スタート)地点を掘る
         self._dig(1, 1)
 
-        # スタートとゴールを配置
+        # スタート地点を配置
         self.maze[1][1] = "S"
+        # ゴール地点の設置
         self.maze[13][13] = "G"
 
         # 必ず到達可能にする
-        self.maze[10][13] = " "
+        # マップサイズ変更により廃止
+        # self.maze[10][13] = " "
 
         return self.maze
 
     def _dig(self, x, y):
-        """再帰的に通路を掘る
+        """指定座標から再帰的に通路を掘る"""
 
-        Args:
-            x (int): 現在のx座標
-            y (int): 現在のy座標
-        """
-
+        # 現在地点を通路にする
         self.maze[y][x] = " "
 
+        # 上下左右2マス先を探索候補とする
         directions = [
             (0, -2),
             (0, 2),
@@ -74,6 +70,7 @@ class MazeGenerator:
             (2, 0)
         ]
 
+        # 掘る方向をランダムに並べ替える
         random.shuffle(directions)
 
         for dx, dy in directions:
@@ -81,6 +78,7 @@ class MazeGenerator:
             nx = x + dx
             ny = y + dy
 
+            # 範囲内かつ未探索の壁なら掘り進める
             if (
                 0 < nx < self.width - 1
                 and
@@ -89,22 +87,23 @@ class MazeGenerator:
                 self.maze[ny][nx] == "#"
             ):
 
+                # 現在地と次の地点の間を通路にする
                 self.maze[y + dy // 2][x + dx // 2] = " "
+                # 再帰的に掘り進める
                 self._dig(nx, ny)
 
     def print_map(self, name="MAP2"):
-        """maps.pyに貼り付け可能な形式で出力する"""
-
+        """生成したマップをMAP形式で出力する"""
         print(f"{name} = [")
 
         for row in self.maze:
             print(f'list("{"".join(row)}"),')
         print("]")
-
+# ランダム迷路生成器を作成
 generator = MazeGenerator()
-
+# ランダムマップをMAPに2に挿入
 MAP2 = generator.generate()
-
+# 生成された迷路をターミナルへ出力
 generator.print_map()
 
 # 使用するマップの一覧（新しいマップはここに追加する）
