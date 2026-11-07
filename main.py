@@ -253,7 +253,8 @@ class Game:
 
 def main():
     pygame.display.set_caption("こうか頭巾")
-    game = Game(maps.MAPS[0])
+    # game = Game(maps.MAPS[1])の中身の数字を1にするとランダムマップに切り替えられます
+    game = Game(maps.MAPS[1])
     screen = pygame.display.set_mode((game.width, game.height))
     clock = pygame.time.Clock()
     while True:
