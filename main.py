@@ -117,8 +117,12 @@ class AudioPlayer:
     """指定ディレクトリ内の音声ファイルを再生するクラス"""
 
     def __init__(self, music_dir: str, volume: float = 0.5):
+        """AudioPlayerオブジェクトの初期化
+            music_dir (str): 音声ファイルが保存されているディレクトリ名
+            volume (float): 初期音量(0.0～1.0)
+            mp3, wav, ogg以外だと正しく認識しないらしいので注意
+        """
         pygame.mixer.init()
-
         self.music_dir = music_dir
         self.volume = volume
 
@@ -129,10 +133,13 @@ class AudioPlayer:
             ]
 
         self.index = 0
-
         pygame.mixer.music.set_volume(self.volume)
 
     def play(self):
+        """選択されている音声ファイルを再生
+        音声ファイルが存在しない場合は何もしない
+        ループ再生にしてある
+        """
         if not self.files:
             return
 
@@ -140,6 +147,9 @@ class AudioPlayer:
         pygame.mixer.music.play(-1)
 
     def next(self):
+        """次の音声ファイルへ切り替える
+        最終ファイルの場合は先頭のファイルに
+        """
         if not self.files:
             return
 
@@ -147,10 +157,16 @@ class AudioPlayer:
         self.play()
 
     def volume_up(self):
+        """音量を0.1(10%)上げる
+        音量の上限は1.0(100%)
+        """
         self.volume = min(1.0, self.volume + 0.1)
         pygame.mixer.music.set_volume(self.volume)
 
     def volume_down(self):
+        """音量を0.1(10%)下げる
+        音量の下限は0.0(100%)
+        """
         self.volume = max(0.0, self.volume - 0.1)
         pygame.mixer.music.set_volume(self.volume)
 
@@ -208,14 +224,16 @@ class Game:
         # 音量調整機能
         volume_y = by - 60
 
+        # 音量ボタンの位置指定
         self.vol_down_button = Button(pygame.Rect(px - 240, volume_y + 60, 70, BLOCK_H), "音量-", (80, 80, 200), self.audio.volume_down, self.font)
 
         self.vol_up_button = Button(pygame.Rect(px -160, volume_y + 60, 70, BLOCK_H), "音量+", (80, 200, 80), self.audio.volume_up, self.font)
 
-        self.buttons.extend([
+        # 音量ボタンを追加
+        self.buttons += [
         self.vol_down_button,
         self.vol_up_button
-        ])
+        ]
 
     def queue_rect(self, i: int) -> pygame.Rect:
         """行動リストの i 番目のブロックの位置（縦につなげ、あふれたら次の列へ）"""
