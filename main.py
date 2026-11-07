@@ -4,6 +4,7 @@ import sys
 
 import actions
 import maps
+from keys_and_doors import KeysAndDoors, MAP1_KD
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -41,10 +42,11 @@ def draw_block(screen: pygame.Surface, rect: pygame.Rect, color: tuple, label: s
 class Maze:
     """迷路（maps.py の2次元リスト）を扱うクラス"""
 
-    def __init__(self, grid: list[list[str]]):
+    def __init__(self, grid: list[list[str]], keys_and_doors: KeysAndDoors):
         self.grid = [row[:] for row in grid]  # 元のマップを書き換えないようにコピー
         self.h = len(self.grid)
         self.w = len(self.grid[0])
+        self.keys_and_doors = keys_and_doors
 
     def find(self, ch: str) -> tuple[int, int]:
         """文字 ch のマスの座標 (x, y) を返す"""
@@ -60,6 +62,8 @@ class Maze:
     def is_walkable(self, x: int, y: int) -> bool:
         if not (0 <= x < self.w and 0 <= y < self.h):
             return False
+        if not self.keys_and_doors.is_walkable(x, y):
+            return False
         return maps.TILES[self.tile(x, y)]["walkable"]
 
     def draw(self, screen: pygame.Surface) -> None:
@@ -68,6 +72,7 @@ class Maze:
                 rect = pygame.Rect(x * CELL, y * CELL, CELL, CELL)
                 pygame.draw.rect(screen, maps.TILES[c]["color"], rect)
                 pygame.draw.rect(screen, (200, 200, 190), rect, 1)
+        self.keys_and_doors.draw(screen)
 
 
 class Player:
@@ -116,8 +121,8 @@ class Button:
 class Game:
     """ゲーム全体の状態をまとめるクラス（行動関数はこれを受け取る）"""
 
-    def __init__(self, grid: list[list[str]]):
-        self.maze = Maze(grid)
+    def __init__(self, grid: list[list[str]], keys_and_doors: KeysAndDoors):
+        self.maze = Maze(grid, keys_and_doors)
         self.start = self.maze.find("S")
         self.goal = self.maze.find("G")
         self.player = Player(self.start)
@@ -181,6 +186,7 @@ class Game:
         if not self.queue:
             return
         self.player.reset(self.start)
+        self.maze.keys_and_doors.reset()
         self.running = True
         self.step_index = 0
         self.timer = 0
@@ -220,6 +226,7 @@ class Game:
         self.timer = 0
         self.queue[self.step_index].func(self)
         self.step_index += 1
+        self.maze.keys_and_doors.on_visit(self.player.x, self.player.y)
         self.on_enter(self.maze.tile(self.player.x, self.player.y))
         if (self.player.x, self.player.y) == self.goal:
             self.on_goal()
@@ -253,7 +260,7 @@ class Game:
 
 def main():
     pygame.display.set_caption("こうか頭巾")
-    game = Game(maps.MAPS[0])
+    game = Game(maps.MAPS[0], KeysAndDoors.from_serialized_data(MAP1_KD))
     screen = pygame.display.set_mode((game.width, game.height))
     clock = pygame.time.Clock()
     while True:
