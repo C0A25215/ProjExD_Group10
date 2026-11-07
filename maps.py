@@ -49,12 +49,11 @@ class MazeGenerator:
         self._dig(1, 1)
 
         # スタートとゴールを配置
-        self.maze[1][1] = "S"
-        self.maze[10][13] = "G"
+        self.maze[0][1] = "S"
+        self.maze[11][13] = "G"
 
         # 必ず到達可能にする
-        self.maze[2][1] = " "
-        self.maze[10][12] = " "
+        self.maze[10][13] = " "
 
         return self.maze
 
