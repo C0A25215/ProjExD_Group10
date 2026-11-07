@@ -28,7 +28,7 @@ def get_font(size: int) -> pygame.font.Font:
 
 
 def draw_block(screen: pygame.Surface, rect: pygame.Rect, color: tuple, label: str,
-               font: pygame.font.Font, highlight: bool = False) -> None:
+                font: pygame.font.Font, highlight: bool = False) -> None:
     """スクラッチ風のブロックを描く（上端の凸で前のブロックとつながって見える）"""
     tab = pygame.Rect(rect.x + 14, rect.y - 5, 18, 6)
     pygame.draw.rect(screen, color, tab, border_radius=2)
@@ -126,7 +126,7 @@ class AudioPlayer:
             os.path.join(music_dir, f)
             for f in os.listdir(music_dir)
             if f.lower().endswith((".mp3", ".wav", ".ogg"))
-        ]
+            ]
 
         self.index = 0
 
@@ -197,8 +197,7 @@ class Game:
         by = self.height - BLOCK_H - MARGIN
         self.delete_button = Button(pygame.Rect(px, by, BLOCK_W, BLOCK_H), "削除",
                                     (210, 80, 80), self.pop, self.font)
-        self.run_button = Button(pygame.Rect(px + BLOCK_W + MARGIN, by, BLOCK_W, BLOCK_H), "実行",
-                                 (70, 170, 90), self.run, self.font)
+        self.run_button = Button(pygame.Rect(px + BLOCK_W + MARGIN, by, BLOCK_W, BLOCK_H), "実行", (70, 170, 90), self.run, self.font)
         self.buttons = self.palette_buttons + [self.delete_button, self.run_button]
 
         # 行動リストに並べられる最大数
@@ -209,21 +208,9 @@ class Game:
         # 音量調整機能
         volume_y = by - 60
 
-        self.vol_down_button = Button(
-        pygame.Rect(px, volume_y, 70, BLOCK_H),
-        "音量-",
-        (80, 80, 200),
-        self.audio.volume_down,
-        self.font
-        )
+        self.vol_down_button = Button(pygame.Rect(px - 240, volume_y + 60, 70, BLOCK_H), "音量-", (80, 80, 200), self.audio.volume_down, self.font)
 
-        self.vol_up_button = Button(
-        pygame.Rect(px + 80, volume_y, 70, BLOCK_H),
-        "音量+",
-        (80, 200, 80),
-        self.audio.volume_up,
-        self.font
-        )
+        self.vol_up_button = Button(pygame.Rect(px -160, volume_y + 60, 70, BLOCK_H), "音量+", (80, 200, 80), self.audio.volume_up, self.font)
 
         self.buttons.extend([
         self.vol_down_button,
@@ -312,7 +299,7 @@ class Game:
         px = self.maze_w + MARGIN
         screen.blit(self.font.render("ブロックを選ぶ", True, (40, 40, 40)), (px, 10))
         screen.blit(self.font.render(f"行動リスト ({len(self.queue)}/{self.max_queue})", True,
-                                     (40, 40, 40)), (px, self.queue_top - 32))
+                                    (40, 40, 40)), (px, self.queue_top - 32))
         for i, act in enumerate(self.queue):
             current = self.running and i == self.step_index
             draw_block(screen, self.queue_rect(i), act.color, act.label, self.font, highlight=current)
