@@ -33,7 +33,7 @@ class MazeGenerator:
     def __init__(self):
         """迷路生成を初期化"""
         self.width = 15
-        self.height = 12
+        self.height = 15
 
     def generate(self):
         """ランダム迷路を生成
@@ -49,8 +49,8 @@ class MazeGenerator:
         self._dig(1, 1)
 
         # スタートとゴールを配置
-        self.maze[0][1] = "S"
-        self.maze[11][13] = "G"
+        self.maze[1][1] = "S"
+        self.maze[13][13] = "G"
 
         # 必ず到達可能にする
         self.maze[10][13] = " "

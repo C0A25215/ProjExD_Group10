@@ -17,8 +17,8 @@ BLOCK_W = 140  # ブロックの幅
 BLOCK_H = 34  # ブロックの高さ
 QUEUE_W = 60  # 行動リストに並ぶブロックの幅
 QUEUE_H = 20  # 行動リストに並ぶブロックの高さ
-QUEUE_COLS = 4  # 行動リストの列数
-MARGIN = 12
+QUEUE_COLS = 5  # 行動リストの列数
+MARGIN = 2
 
 
 def get_font(size: int) -> pygame.font.Font:
