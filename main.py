@@ -319,13 +319,6 @@ class Game:
         for btn in self.buttons:
             btn.draw(screen)
 
-    def load_music(self):
-        pygame.init()
-        pygame.mixer.init()
-        self.paused = False
-        pygame.mixer.music.load("music/touhou.mp3")
-        pygame.mixer.music.set_volume(0.05)
-        pygame.mixer.music.play()
 
 
 def main():
