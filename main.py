@@ -58,28 +58,29 @@ def draw_block(screen: pygame.Surface, rect: pygame.Rect, color: tuple, label: s
 
 #スタートの画面設定のクラス
 class startscreenBtton:
-    def __init__(self, x, y, width, height, text, color, active=False):
+    def __init__(self, x, y, width, height, text, color,active=False):
         self.rect = pygame.Rect(x, y, width, height) #ボタンの大きさを保存
         self.text = text #ボタンの文字
         self.color = color #ボタンの色
         self.active = active # activeはボタンが選択されているか判断するもの
 
     def draw(self, surface, font):
-        # ボタン本体
-        pygame.draw.rect(surface, self.color, self.rect, border_radius=6)
+        # ボタン本体        
+        # pygame.draw.rect(surface, self.color, self.rect, border_radius=6)
+
         if self.active == True: #ボタン押されあたとき
+            self.color = WHITE
             border_color = RED_ACCENT #ボタンを赤くする
             border_width = 3 #枠幅を３にする
+            text_color = RED_ACCENT
         elif self.active == False: #ボタン押されたとき
+            self.color = RED_ACCENT
             border_color = BLACK #ボタンを黒くすル
             border_width = 1 #枠幅を１にする
+            text_color = WHITE
         pygame.draw.rect(surface, border_color, self.rect, border_width, border_radius=6) #ボタンを描写する
 
         # テキスト描画
-        if self.color not in [GRAY_INACTIVE] :
-            text_color = WHITE 
-        else:
-            text_color = BLACK
         text_surf = font.render(self.text, True, text_color)
         text_rect = text_surf.get_rect(center=self.rect.center)
         surface.blit(text_surf, text_rect)
@@ -90,20 +91,20 @@ class startscreenBtton:
 class StartScene:
     def __init__(self, font):
         self.font = font
-        # self.difficulty = 0
-        #self.bg_img = pygame.image.load("ex5/fig/Gemini_Generated_Image_60ggjv60ggjv60gg.jpg").convert()
+        self.difficulty = 0
+        self.bg_img = pygame.image.load("fig/Gemini_Generated_Image_60ggjv60ggjv60gg.jpg")
 
-        # # 画面サイズに合わせる
-        # self.bg_img = pygame.transform.scale(
-        #     self.bg_img, (SCREEN_WIDTH, SCREEN_HEIGHT)
-        # )
-        # # キャラクター画像を読み込む
-        # self.character_img = pygame.image.load("fig/kouka_zukin.png")
+        # 画面サイズに合わせる
+        self.bg_img = pygame.transform.scale(
+            self.bg_img, (SCREEN_WIDTH, SCREEN_HEIGHT)
+        )
+        # キャラクター画像を読み込む
+        self.character_img = pygame.image.load("fig/kouka_zukin.png")
 
-        # # 画像の大きさを変更する
-        # self.character_img = pygame.transform.smoothscale(
-        #     self.character_img, (90, 90)
-        # )
+        # 画像の大きさを変更する
+        self.character_img = pygame.transform.smoothscale(
+            self.character_img, (90, 90)
+        )
 
 
         # 開始ボタン
@@ -113,32 +114,23 @@ class StartScene:
             RED_ACCENT
         )
         # 難易度選択ボタン
-        self.easy_button = startscreenBtton(
-            200, 300, 150, 60, 
-            "EASY",
-            RED_ACCENT
-        )
+
         self.normal_button = startscreenBtton(
             350, 300, 150, 60, 
-            "NORMAL",
+            "シンプル",
             RED_ACCENT
         )
         self.hard_button = startscreenBtton(
             500, 300, 150, 60, 
-            "HARD",
+            "ランダム",
             RED_ACCENT
         )
-        self.crazy_button = startscreenBtton(
-            650, 300, 150, 60, 
-            "CRAZY",
-            RED_ACCENT
-        )
+
          # 最初はEASYを選択状態にする
-        self.easy_button.active = True
-        self.normal_button.active = False
-        self.hard_button.active = False
-        self.crazy_button.active = False
         
+        self.normal_button.active = True
+        self.hard_button.active = False
+                
 
         
 
@@ -150,30 +142,16 @@ class StartScene:
             pos = event.pos
 
         #　難易度場単が押されたときに返す
-            if self.easy_button.is_clicked(pos):
-                    self.difficulty = 0
-                    self.easy_button.active = True
-                    self.normal_button.active = False
-                    self.hard_button.active = False
-                    self.crazy_button.active = False
-            elif self.normal_button.is_clicked(pos):
+            
+            if self.normal_button.is_clicked(pos):
                 self.difficulty = 0
-                self.easy_button.active = False
                 self.normal_button.active = True
                 self.hard_button.active = False
-                self.crazy_button.active = False
             elif self.hard_button.is_clicked(pos):
                 self.difficulty = 0
-                self.easy_button.active = False
                 self.normal_button.active = False
                 self.hard_button.active = True
-                self.crazy_button.active = False
-            elif self.crazy_button.is_clicked(pos):
-                self.difficulty = 0
-                self.easy_button.active = False
-                self.normal_button.active = False
-                self.hard_button.active = False
-                self.crazy_button.active = True    
+             
             #スタート押されたらおわる    
             elif self.start_button.is_clicked(pos):
                 return self.difficulty   
@@ -184,7 +162,7 @@ class StartScene:
 
         # 背景画像
         #surface.blit(BG_GREEN)
-
+        surface.blit(self.bg_img,(0,0))
         # タイトル枠
         title_box = pygame.Rect(150, 50, 700, 110)
         pygame.draw.rect(surface, WHITE, title_box, border_radius=15)
@@ -201,15 +179,13 @@ class StartScene:
             center=(SCREEN_WIDTH // 2 - 100, 105)
         )
         surface.blit(title_surf, title_rect)
-        #surface.blit(self.character_img, (740, 60))
+        surface.blit(self.character_img, (740, 60))
 
         # 開始ボタン
         self.start_button.draw(surface, self.font)
         #難易度ボタン
-        self.easy_button.draw(surface, self.font)
         self.normal_button.draw(surface, self.font)
         self.hard_button.draw(surface, self.font)
-        self.crazy_button.draw(surface, self.font)
 
 
 
