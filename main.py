@@ -123,6 +123,8 @@ class Game:
         self.player = Player(self.start)
         self.queue: list[actions.Action] = []  # 行動リスト
         self.running = False  # 実行中か
+        self.cleared = False
+        self.quit_requested = False
         self.step_index = 0  # 次に実行する行動の番号
         self.timer = 0
         self.message = ""
@@ -132,9 +134,36 @@ class Game:
         self.height = max(self.maze.h * CELL, MIN_H)
         self.font = get_font(18)
         self.big_font = get_font(48)
+        self.clear_font = get_font(28)
         self.buttons: list[Button] = []
         self.palette_buttons: list[Button] = []
         self._layout()
+
+        button_w = 220
+        button_h = 48
+
+        bx = (self.width - button_w) // 2
+
+        self.clear_retry_button = Button(
+            pygame.Rect(bx, 445, button_w, button_h),
+            "もう一度遊ぶ",
+            (60, 170, 90),
+            self.retry,
+            self.clear_font
+        )
+
+        self.clear_exit_button = Button(
+            pygame.Rect(bx, 515, button_w, button_h),
+            "終了",
+            (200, 75, 75),
+            self.exit_game,
+            self.clear_font
+        )
+
+        self.clear_buttons = [
+            self.clear_retry_button,
+            self.clear_exit_button
+        ]
 
     # ---------- 画面の配置 ----------
     def _layout(self) -> None:
@@ -186,6 +215,20 @@ class Game:
         self.timer = 0
         self.message = ""
 
+    def retry(self) -> None:
+        self.cleared = False
+        self.running = False
+
+        self.player.reset(self.start)
+        self.queue.clear()
+
+        self.step_index = 0
+        self.timer = 0
+        self.message = ""
+
+    def exit_game(self) -> None:
+        self.quit_requested = True
+
     # ---------- フック（追加機能はここを拡張する） ----------
     def on_enter(self, tile: str) -> None:
         """プレイヤーが1手動いた後に、今いるマスの文字を受け取って呼ばれる"""
@@ -194,6 +237,7 @@ class Game:
     def on_goal(self) -> None:
         """ゴールに着いたときに呼ばれる"""
         self.running = False
+        self.cleared = True
         self.message = "GOAL!"
 
     def on_finish(self) -> None:
@@ -203,10 +247,17 @@ class Game:
 
     # ---------- 毎フレームの処理 ----------
     def handle_event(self, event: pygame.event.Event) -> None:
+        if self.cleared:
+            for btn in self.clear_buttons:
+                btn.handle(event)
+            return
+
         for btn in self.buttons:
             btn.handle(event)
 
     def update(self, dt: int) -> None:
+        if self.cleared:
+            return
         for btn in self.palette_buttons:
             btn.enabled = not self.running
         self.delete_button.enabled = not self.running
@@ -227,15 +278,113 @@ class Game:
             self.on_finish()
 
     def draw(self, screen: pygame.Surface) -> None:
+        if self.cleared:
+            self.draw_clear(screen)
+            return
+
         screen.fill((30, 30, 40))
+
         self.maze.draw(screen)
         self.player.draw(screen)
+
         self._draw_panel(screen)
+
         if self.message:
-            txt = self.big_font.render(self.message, True, (255, 60, 60))
-            rect = txt.get_rect(center=(self.maze_w // 2, self.maze.h * CELL // 2))
-            pygame.draw.rect(screen, (255, 255, 255), rect.inflate(30, 16), border_radius=10)
+            txt = self.big_font.render(
+                self.message,
+                True,
+                (255, 60, 60)
+            )
+
+            rect = txt.get_rect(
+                center=(
+                    self.maze_w // 2,
+                    self.maze.h * CELL // 2
+                )
+            )
+
+            pygame.draw.rect(
+                screen,
+                (255, 255, 255),
+                rect.inflate(30, 16),
+                border_radius=10
+            )
             screen.blit(txt, rect)
+
+    def draw_clear(self, screen: pygame.Surface) -> None:
+        screen.fill((35, 45, 70))
+
+        # 背景の装飾
+        for x, y, r in [
+            (60, 70, 5),
+            (self.width - 70, 90, 6),
+            (100, 330, 5),
+            (self.width - 100, 350, 5),
+            (self.width // 2 - 170, 180, 4),
+            (self.width // 2 + 170, 180, 4)
+        ]:
+            pygame.draw.circle(
+                screen, (255, 220, 100),
+                (x, y), r
+            )
+
+        # クリア画面のタイトル
+        title = self.big_font.render(
+            "GAME CLEAR!",
+            True,
+            (255, 220, 70)
+        )
+
+        screen.blit(
+            title,
+            title.get_rect(
+                center=(self.width // 2, 85)
+            )
+        )
+
+        # 赤ずきんのイラストを大きく表示
+        character = pygame.transform.smoothscale(
+            self.player.image,
+            (120, 120)
+        )
+
+        screen.blit(
+            character,
+            character.get_rect(
+                center=(self.width // 2, 250)
+            )
+        )
+
+        # クリアメッセージ
+        message = self.clear_font.render(
+            "おめでとう！",
+            True,
+            (255, 255, 255)
+        )
+
+        screen.blit(
+            message,
+            message.get_rect(
+                center=(self.width // 2, 350)
+            )
+        )
+
+        sub_message = self.font.render(
+            "迷路をクリアしました！",
+            True,
+            (230, 230, 230)
+        )
+
+        screen.blit(
+            sub_message,
+            sub_message.get_rect(
+                center=(self.width // 2, 390)
+            )
+        )
+
+        # クリア画面のボタン
+        for btn in self.clear_buttons:
+            btn.draw(screen)
 
     def _draw_panel(self, screen: pygame.Surface) -> None:
         panel = pygame.Rect(self.maze_w, 0, PANEL_W, self.height)
@@ -261,6 +410,8 @@ def main():
             if event.type == pygame.QUIT:
                 return
             game.handle_event(event)
+        if game.quit_requested:
+            return
         game.update(clock.get_time())
         game.draw(screen)
         pygame.display.update()
