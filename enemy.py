@@ -54,6 +54,7 @@ class TraceEnemy(Enemy):
         self.__delay = delay
         self.__step_index = 0
         self.__x, self.__y = None, None
+        self.__maze: "Maze" = None
 
     def set_initial_pos(self, initial_pos: tuple[int, int]):
         """
@@ -68,13 +69,20 @@ class TraceEnemy(Enemy):
         """
         self.__actions = actions
 
+    def set_maze(self, maze: "Maze"):
+        """
+        迷路のデータを設定する
+        """
+        self.__maze = maze
+
     def reset(self):
         self.__step_index = 0
         self.__x, self.__y = self.__initial_pos
 
     def __move(self, dx: int, dy: int):
-        self.__x += dx
-        self.__y += dy
+        nx, ny = self.__x + dx, self.__y + dy
+        if self.__maze.is_walkable(nx, ny):
+            self.__x, self.__y = nx, ny
 
     def step(self):
         if self.__step_index >= self.__delay and self.__step_index - self.__delay < len(self.__actions):

@@ -135,6 +135,7 @@ class Game:
         for enemy in enemies:
             if isinstance(enemy, TraceEnemy):
                 enemy.set_initial_pos(self.start)
+                enemy.set_maze(self.maze)
         self.enemies: list[Enemy] = enemies
 
         self.maze_w = self.maze.w * CELL
