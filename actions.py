@@ -1,7 +1,7 @@
 # 行動ブロックの定義
 # 行動は register(ラベル, 色, アクションの種類) を書くと
 # 行動選択画面のパレットに自動で追加される
-# main.py の match 文にアクションの具体的な処理が書かれているので
+# main.py の match 文や enemy.py の match 文にアクションの具体的な処理が書かれているので
 # そこにもコードを追加をする必要がある
 from dataclasses import dataclass
 from typing import Callable
