@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
+import os
+
 from actions import ActionKind
 import pygame
+
+os.chdir(os.path.dirname(os.path.abspath(__file__))) # これをここでやらないと pygame.image.load が死ぬ
 
 CELL = 40
 
@@ -43,12 +47,19 @@ class TraceEnemy(Enemy):
     数ステップ遅れてプレイヤーの動きを真似する敵
     """
 
-    def __init__(self, initial_pos: tuple[int, int], delay: int):
+    def __init__(self, delay: int):
         self.__image = pygame.transform.smoothscale(pygame.image.load("fig/enemy1.png"), (CELL, CELL))
-        self.__initial_pos = initial_pos
+        self.__initial_pos = None
         self.__actions: list[ActionKind] = []
         self.__delay = delay
         self.__step_index = 0
+        self.__x, self.__y = None, None
+
+    def set_initial_pos(self, initial_pos: tuple[int, int]):
+        """
+        敵の初期値を設定する
+        """
+        self.__initial_pos = initial_pos
         self.__x, self.__y = initial_pos
 
     def set_actions(self, actions: list[ActionKind]):
@@ -121,3 +132,10 @@ class PatrolEnemy(Enemy):
     @property
     def pos(self) -> tuple[int, int]:
         return self.__route[self.__route_index]
+
+
+MAP1_ENEMIES = [
+    PatrolEnemy([(1, 7), (2, 7), (3, 7), (4, 7), (5, 7), (6, 7), (7, 7)]),
+    PatrolEnemy([(3, 3), (3, 4), (3, 5)]),
+    TraceEnemy(5),
+]

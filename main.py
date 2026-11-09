@@ -5,7 +5,7 @@ import sys
 import actions
 import maps
 from keys_and_doors import KeysAndDoors, MAP1_KD
-from enemy import Enemy, TraceEnemy, PatrolEnemy
+from enemy import Enemy, TraceEnemy, MAP1_ENEMIES
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -132,7 +132,9 @@ class Game:
         self.step_index = 0  # 次に実行する行動の番号
         self.timer = 0
         self.message = ""
-        enemies.append(TraceEnemy(self.start, 5))
+        for enemy in enemies:
+            if isinstance(enemy, TraceEnemy):
+                enemy.set_initial_pos(self.start)
         self.enemies: list[Enemy] = enemies
 
         self.maze_w = self.maze.w * CELL
@@ -286,11 +288,7 @@ class Game:
 
 def main():
     pygame.display.set_caption("こうか頭巾")
-    enemies = [
-        PatrolEnemy([(1, 7), (2, 7), (3, 7), (4, 7), (5, 7), (6, 7), (7, 7)]),
-        PatrolEnemy([(3, 3), (3, 4), (3, 5)]),
-    ]
-    game = Game(maps.MAPS[0], KeysAndDoors.from_serialized_data(MAP1_KD), enemies)
+    game = Game(maps.MAPS[0], KeysAndDoors.from_serialized_data(MAP1_KD), MAP1_ENEMIES)
     screen = pygame.display.set_mode((game.width, game.height))
     clock = pygame.time.Clock()
     while True:
