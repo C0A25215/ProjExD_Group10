@@ -12,7 +12,6 @@ class ActionKind(Enum):
     MoveDown = auto()
     MoveLeft = auto()
     MoveRight = auto()
-    Wait = auto()
 
 
 @dataclass
