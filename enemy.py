@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 import os
 
-from actions import ActionKind
 import pygame
+
+from actions import ActionKind
 
 os.chdir(os.path.dirname(os.path.abspath(__file__))) # これをここでやらないと pygame.image.load が死ぬ
 
