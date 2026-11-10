@@ -186,6 +186,8 @@ class Game:
         self.player = Player(self.start)
         self.queue: list[actions.Action] = []  # 行動リスト
         self.running = False  # 実行中か
+        self.cleared = False
+        self.quit_requested = False
         self.step_index = 0  # 次に実行する行動の番号
         self.timer = 0
         self.message = ""
@@ -195,17 +197,50 @@ class Game:
                 enemy.set_maze(self.maze)
         self.enemies: list[Enemy] = enemies
 
+        self.is_gameover = False
+
+        self.gameover_font = get_font(64)
+
+        self.gameover_image = pygame.transform.smoothscale(
+            pygame.image.load("fig/オオカミ.png"), (160, 160)
+        )
         self.maze_w = self.maze.w * CELL
         self.width = self.maze_w + PANEL_W
         self.height = max(self.maze.h * CELL, MIN_H)
         self.font = get_font(18)
         self.big_font = get_font(48)
+        self.clear_font = get_font(28)
         self.buttons: list[Button] = []
         self.palette_buttons: list[Button] = []
         self.audio = AudioPlayer("music", 0.3)
         self.audio.play()
         self._layout()
 
+        button_w = 220
+        button_h = 48
+
+        bx = (self.width - button_w) // 2
+
+        self.clear_retry_button = Button(
+            pygame.Rect(bx, 445, button_w, button_h),
+            "もう一度遊ぶ",
+            (60, 170, 90),
+            self.retry,
+            self.clear_font
+        )
+
+        self.clear_exit_button = Button(
+            pygame.Rect(bx, 515, button_w, button_h),
+            "終了",
+            (200, 75, 75),
+            self.exit_game,
+            self.clear_font
+        )
+
+        self.clear_buttons = [
+            self.clear_retry_button,
+            self.clear_exit_button
+        ]
 
     # ---------- 画面の配置 ----------
     def _layout(self) -> None:
@@ -245,6 +280,19 @@ class Game:
         self.vol_down_button,
         self.vol_up_button
         ]
+        self.retry_button = Button(
+            pygame.Rect(self.width // 2 - 150, self.height // 2 + 120,
+                        140, 40),
+            "もう一度遊ぶ", (70, 170, 90),
+            self.gameover, self.font
+        )
+
+        self.exit_button = Button(
+            pygame.Rect(self.width // 2 + 10, self.height // 2 + 120,
+                        140, 40),
+            "終了", (210, 80, 80),
+            self.exit_game, self.font
+        )
 
     def queue_rect(self, i: int) -> pygame.Rect:
         """行動リストの i 番目のブロックの位置（縦につなげ、あふれたら次の列へ）"""
@@ -276,36 +324,94 @@ class Game:
         self.timer = 0
         self.message = ""
 
+    def retry(self) -> None:
+        self.cleared = False
+        self.running = False
+
+        for enemy in self.enemies:
+            enemy.reset()
+        self.maze.keys_and_doors.reset()
+
+        self.player.reset(self.start)
+        self.queue.clear()
+
+    def gameover(self):
+        self.is_gameover = False
+        self.player.reset(self.start)
+        self.running = False
+        self.step_index = 0
+        self.timer = 0
+        self.message = ""
+
+    def exit_game(self) -> None:
+        self.quit_requested = True
+
     # ---------- フック（追加機能はここを拡張する） ----------
     def on_enter(self, tile: maps.Tile, x: int, y: int) -> None:
         """プレイヤーが1手動いた後に、今いるマスの文字を受け取って呼ばれる"""
         if tile.sign == "W":
             self.maze.grid[y][x].color = (255, 0, 0) # 落ちた穴のマスを赤に
             self.running = False
+            self.is_gameover = True
             self.message = "穴に落ちてしまった..."
 
     def on_goal(self) -> None:
         """ゴールに着いたときに呼ばれる"""
         self.maze = self.maze_bk # 迷路を初期化して穴についた色をリセット
         self.running = False
+        self.cleared = True
         self.message = "GOAL!"
 
     def on_finish(self) -> None:
         """ゴールせずに行動リストを最後まで実行したときに呼ばれる"""
         self.running = False
+        self.is_gameover = True
         self.message = "ゴールに届かなかった…"
 
     def on_killed(self) -> None:
         """敵に捕まったときに呼ばれる"""
         self.running = False
+        self.is_gameover = True
         self.message = "敵に捕まった…"
 
     # ---------- 毎フレームの処理 ----------
     def handle_event(self, event: pygame.event.Event) -> None:
+        if self.cleared:
+            for btn in self.clear_buttons:
+                btn.handle(event)
+        if self.is_gameover:
+            self.retry_button.handle(event)
+            self.exit_button.handle(event)
+            return
+
         for btn in self.buttons:
             btn.handle(event)
+        if event.type == pygame.KEYDOWN and not self.running:#実行されてない場合キーボードが押されてら処理する
+            key_actions ={
+                pygame.K_UP:"↑ 上",#キーボードの上矢印が浅れた場合actions.pyの↑ 上のブロックを追加する
+                pygame.K_DOWN:"↓ 下",#キーボードの下矢印が浅れた場合actions.pyの↓ 下のブロックを追加する
+                pygame.K_LEFT:"← 左",#キーボードの左矢印が浅れた場合actions.pyの← 左のブロックを追加する
+                pygame.K_RIGHT:"→ 右"#キーボードの右矢印が浅れた場合actions.pyの→ 右のブロックを追加する
+            }
+            if event.key in key_actions:
+                direction = key_actions[event.key]#対応するキーを取得して代入
+        
+                for act in actions.ACTIONS:
+                    if act.label == direction:#行動とキーが一緒なら
+                        self.add(act)#行動を追加する
+                        break
+
+        if event.type == pygame.KEYDOWN and not self.running:
+            if event.key == pygame.K_RETURN:
+                self.run()
+
+        if event.type == pygame.KEYDOWN and not self.running:
+            if event.key == pygame.K_BACKSPACE:
+                self.pop()
 
     def update(self, dt: int) -> None:
+        if self.cleared:
+            return
         for btn in self.palette_buttons:
             btn.enabled = not self.running
         self.delete_button.enabled = not self.running
@@ -338,18 +444,144 @@ class Game:
         elif self.step_index >= len(self.queue):
             self.on_finish()
 
-    def draw(self, screen: pygame.Surface) -> None:
+    def draw_gameover(self, screen: pygame.Surface) -> None:
         screen.fill((30, 30, 40))
+
+        image_rect = self.gameover_image.get_rect(
+            center=(self.width // 2, self.height // 2 - 130)
+        )
+        screen.blit(self.gameover_image, image_rect)
+
+        title = self.gameover_font.render(
+            "GAME OVER", True, (255, 60, 60)
+        )
+        title_rect = title.get_rect(
+            center=(self.width // 2, self.height // 2 + 5)
+        )
+        screen.blit(title, title_rect)
+
+        screen.blit(self.gameover_image, image_rect)
+        
+        over_title = self.gameover_font.render(
+            self.message, True, (200, 60, 60)
+        )
+        screen.blit(over_title, over_title.get_rect(center=(self.width // 2, self.height // 2 + 70)))
+
+        self.retry_button.draw(screen)
+        self.exit_button.draw(screen)
+
+    def draw(self, screen: pygame.Surface) -> None:
+        if self.cleared:
+            self.draw_clear(screen)
+        if self.is_gameover:
+            self.draw_gameover(screen)
+            return
+
+        screen.fill((30, 30, 40))
+
         self.maze.draw(screen)
         self.player.draw(screen)
         for enemy in self.enemies:
             enemy.draw(screen)
+
         self._draw_panel(screen)
+
         if self.message:
-            txt = self.big_font.render(self.message, True, (255, 60, 60))
-            rect = txt.get_rect(center=(self.maze_w // 2, self.maze.h * CELL // 2))
-            pygame.draw.rect(screen, (255, 255, 255), rect.inflate(30, 16), border_radius=10)
+            txt = self.big_font.render(
+                self.message,
+                True,
+                (255, 60, 60)
+            )
+
+            rect = txt.get_rect(
+                center=(
+                    self.maze_w // 2,
+                    self.maze.h * CELL // 2
+                )
+            )
+
+            pygame.draw.rect(
+                screen,
+                (255, 255, 255),
+                rect.inflate(30, 16),
+                border_radius=10
+            )
             screen.blit(txt, rect)
+
+    def draw_clear(self, screen: pygame.Surface) -> None:
+        screen.fill((35, 45, 70))
+
+        # 背景の装飾
+        for x, y, r in [
+            (60, 70, 5),
+            (self.width - 70, 90, 6),
+            (100, 330, 5),
+            (self.width - 100, 350, 5),
+            (self.width // 2 - 170, 180, 4),
+            (self.width // 2 + 170, 180, 4)
+        ]:
+            pygame.draw.circle(
+                screen, (255, 220, 100),
+                (x, y), r
+            )
+
+        # クリア画面のタイトル
+        title = self.big_font.render(
+            "GAME CLEAR!",
+            True,
+            (255, 220, 70)
+        )
+
+        screen.blit(
+            title,
+            title.get_rect(
+                center=(self.width // 2, 85)
+            )
+        )
+
+        # 赤ずきんのイラストを大きく表示
+        character = pygame.transform.smoothscale(
+            self.player.image,
+            (120, 120)
+        )
+
+        screen.blit(
+            character,
+            character.get_rect(
+                center=(self.width // 2, 250)
+            )
+        )
+
+        # クリアメッセージ
+        message = self.clear_font.render(
+            "おめでとう！",
+            True,
+            (255, 255, 255)
+        )
+
+        screen.blit(
+            message,
+            message.get_rect(
+                center=(self.width // 2, 350)
+            )
+        )
+
+        sub_message = self.font.render(
+            "迷路をクリアしました！",
+            True,
+            (230, 230, 230)
+        )
+
+        screen.blit(
+            sub_message,
+            sub_message.get_rect(
+                center=(self.width // 2, 390)
+            )
+        )
+
+        # クリア画面のボタン
+        for btn in self.clear_buttons:
+            btn.draw(screen)
 
     def _draw_panel(self, screen: pygame.Surface) -> None:
         panel = pygame.Rect(self.maze_w, 0, PANEL_W, self.height)
@@ -370,7 +602,7 @@ def main():
     pygame.display.set_caption("こうか頭巾")
     # game = Game(maps.MAPS[0])の中身の数字を2にするとランダムマップに切り替えられます
     # 0なら通常モード
-    seleted_map = maps.MAPS[0]
+    seleted_map = maps.MAPS[1]
     game = Game(seleted_map.grid, KeysAndDoors.from_serialized_data(seleted_map.key_door_data), seleted_map.enemies)
     screen = pygame.display.set_mode((game.width, game.height))
     clock = pygame.time.Clock()
@@ -379,6 +611,8 @@ def main():
             if event.type == pygame.QUIT:
                 return
             game.handle_event(event)
+        if game.quit_requested:
+            return
         game.update(clock.get_time())
         game.draw(screen)
         pygame.display.update()
