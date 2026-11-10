@@ -197,6 +197,13 @@ class Game:
                 enemy.set_maze(self.maze)
         self.enemies: list[Enemy] = enemies
 
+        self.is_gameover = False
+
+        self.gameover_font = get_font(64)
+
+        self.gameover_image = pygame.transform.smoothscale(
+            pygame.image.load("fig/オオカミ.png"), (160, 160)
+        )
         self.maze_w = self.maze.w * CELL
         self.width = self.maze_w + PANEL_W
         self.height = max(self.maze.h * CELL, MIN_H)
@@ -273,6 +280,19 @@ class Game:
         self.vol_down_button,
         self.vol_up_button
         ]
+        self.retry_button = Button(
+            pygame.Rect(self.width // 2 - 150, self.height // 2 + 120,
+                        140, 40),
+            "もう一度遊ぶ", (70, 170, 90),
+            self.gameover, self.font
+        )
+
+        self.exit_button = Button(
+            pygame.Rect(self.width // 2 + 10, self.height // 2 + 120,
+                        140, 40),
+            "終了", (210, 80, 80),
+            self.exit_game, self.font
+        )
 
     def queue_rect(self, i: int) -> pygame.Rect:
         """行動リストの i 番目のブロックの位置（縦につなげ、あふれたら次の列へ）"""
@@ -315,6 +335,10 @@ class Game:
         self.player.reset(self.start)
         self.queue.clear()
 
+    def gameover(self):
+        self.is_gameover = False
+        self.player.reset(self.start)
+        self.running = False
         self.step_index = 0
         self.timer = 0
         self.message = ""
@@ -328,6 +352,7 @@ class Game:
         if tile.sign == "W":
             self.maze.grid[y][x].color = (255, 0, 0) # 落ちた穴のマスを赤に
             self.running = False
+            self.is_gameover = True
             self.message = "穴に落ちてしまった..."
 
     def on_goal(self) -> None:
@@ -340,11 +365,13 @@ class Game:
     def on_finish(self) -> None:
         """ゴールせずに行動リストを最後まで実行したときに呼ばれる"""
         self.running = False
+        self.is_gameover = True
         self.message = "ゴールに届かなかった…"
 
     def on_killed(self) -> None:
         """敵に捕まったときに呼ばれる"""
         self.running = False
+        self.is_gameover = True
         self.message = "敵に捕まった…"
 
     # ---------- 毎フレームの処理 ----------
@@ -352,6 +379,9 @@ class Game:
         if self.cleared:
             for btn in self.clear_buttons:
                 btn.handle(event)
+        if self.is_gameover:
+            self.retry_button.handle(event)
+            self.exit_button.handle(event)
             return
 
         for btn in self.buttons:
@@ -414,9 +444,37 @@ class Game:
         elif self.step_index >= len(self.queue):
             self.on_finish()
 
+    def draw_gameover(self, screen: pygame.Surface) -> None:
+        screen.fill((30, 30, 40))
+
+        image_rect = self.gameover_image.get_rect(
+            center=(self.width // 2, self.height // 2 - 130)
+        )
+        screen.blit(self.gameover_image, image_rect)
+
+        title = self.gameover_font.render(
+            "GAME OVER", True, (255, 60, 60)
+        )
+        title_rect = title.get_rect(
+            center=(self.width // 2, self.height // 2 + 5)
+        )
+        screen.blit(title, title_rect)
+
+        screen.blit(self.gameover_image, image_rect)
+        
+        over_title = self.gameover_font.render(
+            self.message, True, (200, 60, 60)
+        )
+        screen.blit(over_title, over_title.get_rect(center=(self.width // 2, self.height // 2 + 70)))
+
+        self.retry_button.draw(screen)
+        self.exit_button.draw(screen)
+
     def draw(self, screen: pygame.Surface) -> None:
         if self.cleared:
             self.draw_clear(screen)
+        if self.is_gameover:
+            self.draw_gameover(screen)
             return
 
         screen.fill((30, 30, 40))
@@ -544,7 +602,7 @@ def main():
     pygame.display.set_caption("こうか頭巾")
     # game = Game(maps.MAPS[0])の中身の数字を2にするとランダムマップに切り替えられます
     # 0なら通常モード
-    seleted_map = maps.MAPS[3]
+    seleted_map = maps.MAPS[1]
     game = Game(seleted_map.grid, KeysAndDoors.from_serialized_data(seleted_map.key_door_data), seleted_map.enemies)
     screen = pygame.display.set_mode((game.width, game.height))
     clock = pygame.time.Clock()
