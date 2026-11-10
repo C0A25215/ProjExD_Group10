@@ -445,11 +445,15 @@ class Game:
         self.queue_top = y + rows * (BLOCK_H + MARGIN) + 40
 
         # 削除・実行ボタン（画面下）
+        button_w = 90 #実行削除ボタンだけ変更
         by = self.height - BLOCK_H - MARGIN
-        self.delete_button = Button(pygame.Rect(px, by, BLOCK_W, BLOCK_H), "削除",
+        self.delete_button = Button(pygame.Rect(px, by, button_w, BLOCK_H), "削除",
                                     (210, 80, 80), self.pop, self.font)
-        self.run_button = Button(pygame.Rect(px + BLOCK_W + MARGIN, by, BLOCK_W, BLOCK_H), "実行", (70, 170, 90), self.run, self.font)
-        self.buttons = self.palette_buttons + [self.delete_button, self.run_button]
+        self.clear_button = Button(pygame.Rect(px + button_w + MARGIN, by, button_w, BLOCK_H), "全削除",
+                                    (180, 60, 60), self.clear, self.font)
+        self.run_button = Button(pygame.Rect(px + (button_w + MARGIN) * 2, by, button_w, BLOCK_H), "実行",
+                                    (70, 170, 90), self.run, self.font)
+        self.buttons = self.palette_buttons + [self.delete_button, self.clear_button,self.run_button]
 
         # 行動リストに並べられる最大数
         self.queue_rows = max(1, (by - MARGIN - self.queue_top) // QUEUE_H)
@@ -497,6 +501,9 @@ class Game:
     def pop(self) -> None:
         if self.queue:
             self.queue.pop()
+
+    def clear(self) -> None:
+        self.queue.clear() # 全削除
 
     def run(self) -> None:
         """スタートに戻して行動リストを先頭から実行する"""
@@ -608,6 +615,7 @@ class Game:
         for btn in self.palette_buttons:
             btn.enabled = not self.running
         self.delete_button.enabled = not self.running
+        self.clear_button.enabled = not self.running
         self.run_button.enabled = not self.running and bool(self.queue)
 
         if not self.running:
