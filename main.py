@@ -69,15 +69,16 @@ class startscreenBtton:
         # pygame.draw.rect(surface, self.color, self.rect, border_radius=6)
 
         if self.active == True: #ボタン押されあたとき
-            self.color = WHITE
+            self.color = WHITE 
             border_color = RED_ACCENT #ボタンを赤くする
             border_width = 3 #枠幅を３にする
-            text_color = RED_ACCENT
+            text_color = RED_ACCENT #文字の色
         elif self.active == False: #ボタン押されたとき
             self.color = RED_ACCENT
             border_color = BLACK #ボタンを黒くすル
             border_width = 1 #枠幅を１にする
-            text_color = WHITE
+            text_color = WHITE #文字の色
+            
         pygame.draw.rect(surface, border_color, self.rect, border_width, border_radius=6) #ボタンを描写する
 
         # テキスト描画
@@ -86,13 +87,16 @@ class startscreenBtton:
         surface.blit(text_surf, text_rect)
 
     def is_clicked(self, pos):
-        return self.rect.collidepoint(pos)    
+        return self.rect.collidepoint(pos) #カーソルがボタンの中にある 
 
 class StartScene:
     def __init__(self, font):
+        """
+        初期設定
+        """
         self.font = font
-        self.difficulty = 0
-        self.bg_img = pygame.image.load("fig/Gemini_Generated_Image_60ggjv60ggjv60gg.jpg")
+        self.difficulty = 0 #最初の難易度を決めておく
+        self.bg_img = pygame.image.load("fig/Gemini_Generated_Image_60ggjv60ggjv60gg.jpg") #背景画像をロード
 
         # 画面サイズに合わせる
         self.bg_img = pygame.transform.scale(
@@ -114,29 +118,42 @@ class StartScene:
             RED_ACCENT
         )
         # 難易度選択ボタン
-
         self.normal_button = startscreenBtton(
-            350, 300, 150, 60, 
+            200, 300, 150, 60, 
             "シンプル",
             RED_ACCENT
+            #初めに設定されてるやつ
         )
         self.hard_button = startscreenBtton(
-            500, 300, 150, 60, 
+            350, 300, 150, 60, 
             "ランダム",
             RED_ACCENT
+            #ランダム
         )
-
-         # 最初はEASYを選択状態にする
+        self.hole_button = startscreenBtton(
+            500, 300, 150, 60, 
+            "落とし穴",
+            RED_ACCENT
+            #落とし穴
+        )
+        self.emeny_button = startscreenBtton(
+            650, 300, 150, 60, 
+            "敵",
+            RED_ACCENT
+            #敵ハッセイ
+        )
         
+        #最初に押されているようにするものを設定
         self.normal_button.active = True
         self.hard_button.active = False
-                
+        self.hole_button.active =False
+        self.emeny_button.active =False
 
         
 
     def handle_event(self, event):
         """ゲーム開始ボタンのクリック判定"""
-
+        
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             pos = event.pos
@@ -147,10 +164,27 @@ class StartScene:
                 self.difficulty = 0
                 self.normal_button.active = True
                 self.hard_button.active = False
+                self.hole_button.active =False
+                self.emeny_button.active =False
             elif self.hard_button.is_clicked(pos):
                 self.difficulty = 0
                 self.normal_button.active = False
                 self.hard_button.active = True
+                self.hole_button.active =False
+                self.emeny_button.active =False
+            elif self.hole_button.is_clicked(pos):
+                self.difficulty = 0
+                self.normal_button.active = False
+                self.hard_button.active = False
+                self.hole_button.active =True
+                self.emeny_button.active =False
+            elif self.emeny_button.is_clicked(pos):
+                self.difficulty = 0
+                self.normal_button.active = False
+                self.hard_button.active = False
+                self.hole_button.active =False
+                self.emeny_button.active =True                               
+
              
             #スタート押されたらおわる    
             elif self.start_button.is_clicked(pos):
@@ -158,7 +192,9 @@ class StartScene:
         return None
 
     def draw(self, surface):
-        """スタート画面の描画"""
+        """
+        スタート画面の描画
+        """
 
         # 背景画像
         #surface.blit(BG_GREEN)
@@ -186,6 +222,8 @@ class StartScene:
         #難易度ボタン
         self.normal_button.draw(surface, self.font)
         self.hard_button.draw(surface, self.font)
+        self.hole_button.draw(surface, self.font)
+        self.emeny_button.draw(surface, self.font)
 
 
 
