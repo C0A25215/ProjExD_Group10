@@ -22,6 +22,25 @@ QUEUE_H = 20  # 行動リストに並ぶブロックの高さ
 QUEUE_COLS = 5  # 行動リストの列数
 MARGIN = 2
 
+#スタート画面の引数
+
+# 画面サイズ
+SCREEN_WIDTH = 1000
+SCREEN_HEIGHT = 600
+FPS = 60
+
+# カラー定義 (RGB)
+WHITE = (255, 255, 255)
+BLACK = (30, 30, 30)
+BG_GREEN = (235, 247, 230)   # 森をイメージしたうすい緑色
+GREEN_BUTTON = (76, 175, 80)
+GREEN_HOVER = (102, 187, 106)
+GRAY_INACTIVE = (180, 190, 180)
+RED_ACCENT = (230, 74, 25)   # こうかずきんの赤
+GOLD_COLOR = (255, 193, 7)
+
+#終わり
+
 
 def get_font(size: int) -> pygame.font.Font:
     """日本語を表示できるフォントを返す"""
@@ -38,6 +57,176 @@ def draw_block(screen: pygame.Surface, rect: pygame.Rect, color: tuple, label: s
     pygame.draw.rect(screen, border, rect, 3 if highlight else 1, border_radius=6)
     txt = font.render(label, True, (255, 255, 255))
     screen.blit(txt, txt.get_rect(midleft=(rect.x + 10, rect.centery)))
+
+#スタートの画面設定のクラス
+class startscreenBtton:
+    def __init__(self, x, y, width, height, text, color,active=False):
+        self.rect = pygame.Rect(x, y, width, height) #ボタンの大きさを保存
+        self.text = text #ボタンの文字
+        self.color = color #ボタンの色
+        self.active = active # activeはボタンが選択されているか判断するもの
+
+    def draw(self, surface, font):
+        # ボタン本体        
+        # pygame.draw.rect(surface, self.color, self.rect, border_radius=6)
+
+        if self.active == True: #ボタン押されあたとき
+            self.color = WHITE 
+            border_color = RED_ACCENT #ボタンを赤くする
+            border_width = 3 #枠幅を３にする
+            text_color = RED_ACCENT #文字の色
+        elif self.active == False: #ボタン押されたとき
+            self.color = RED_ACCENT
+            border_color = BLACK #ボタンを黒くすル
+            border_width = 1 #枠幅を１にする
+            text_color = WHITE #文字の色
+            
+        pygame.draw.rect(surface, border_color, self.rect, border_width, border_radius=6) #ボタンを描写する
+
+        # テキスト描画
+        text_surf = font.render(self.text, True, text_color)
+        text_rect = text_surf.get_rect(center=self.rect.center)
+        surface.blit(text_surf, text_rect)
+
+    def is_clicked(self, pos):
+        return self.rect.collidepoint(pos) #カーソルがボタンの中にある 
+
+class StartScene:
+    def __init__(self, font):
+        """
+        初期設定
+        """
+        self.font = font
+        self.difficulty = 0 #最初の難易度を決めておく
+        self.bg_img = pygame.image.load("fig/Gemini_Generated_Image_60ggjv60ggjv60gg.jpg") #背景画像をロード
+
+        # 画面サイズに合わせる
+        self.bg_img = pygame.transform.scale(
+            self.bg_img, (SCREEN_WIDTH, SCREEN_HEIGHT)
+        )
+        # キャラクター画像を読み込む
+        self.character_img = pygame.image.load("fig/kouka_zukin.png")
+
+        # 画像の大きさを変更する
+        self.character_img = pygame.transform.smoothscale(
+            self.character_img, (90, 90)
+        )
+
+
+        # 開始ボタン
+        self.start_button = startscreenBtton(
+            350, 440, 300, 65, 
+            "▶ ゲームを開始する",
+            RED_ACCENT
+        )
+        # 難易度選択ボタン
+        self.normal_button = startscreenBtton(
+            200, 300, 150, 60, 
+            "シンプル",
+            RED_ACCENT
+            #初めに設定されてるやつ
+        )
+        self.hard_button = startscreenBtton(
+            350, 300, 150, 60, 
+            "ランダム",
+            RED_ACCENT
+            #ランダム
+        )
+        self.hole_button = startscreenBtton(
+            500, 300, 150, 60, 
+            "落とし穴",
+            RED_ACCENT
+            #落とし穴
+        )
+        self.emeny_button = startscreenBtton(
+            650, 300, 150, 60, 
+            "敵",
+            RED_ACCENT
+            #敵ハッセイ
+        )
+        
+        #最初に押されているようにするものを設定
+        self.normal_button.active = True
+        self.hard_button.active = False
+        self.hole_button.active =False
+        self.emeny_button.active =False
+
+        
+
+    def handle_event(self, event):
+        """ゲーム開始ボタンのクリック判定"""
+        
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            pos = event.pos
+
+        #　難易度場単が押されたときに返す
+            
+            if self.normal_button.is_clicked(pos):
+                self.difficulty = 0
+                self.normal_button.active = True
+                self.hard_button.active = False
+                self.hole_button.active =False
+                self.emeny_button.active =False
+            elif self.hard_button.is_clicked(pos):
+                self.difficulty = 2
+                self.normal_button.active = False
+                self.hard_button.active = True
+                self.hole_button.active =False
+                self.emeny_button.active =False
+            elif self.hole_button.is_clicked(pos):
+                self.difficulty = 1
+                self.normal_button.active = False
+                self.hard_button.active = False
+                self.hole_button.active =True
+                self.emeny_button.active =False
+            elif self.emeny_button.is_clicked(pos):
+                self.difficulty = 3
+                self.normal_button.active = False
+                self.hard_button.active = False
+                self.hole_button.active =False
+                self.emeny_button.active =True                               
+
+             
+            #スタート押されたらおわる    
+            elif self.start_button.is_clicked(pos):
+                return self.difficulty   
+        return None
+
+    def draw(self, surface):
+        """
+        スタート画面の描画
+        """
+
+        # 背景画像
+        #surface.blit(BG_GREEN)
+        surface.blit(self.bg_img,(0,0))
+        # タイトル枠
+        title_box = pygame.Rect(150, 50, 700, 110)
+        pygame.draw.rect(surface, WHITE, title_box, border_radius=15)
+        pygame.draw.rect(
+            surface, RED_ACCENT, title_box, 4,
+            border_radius=15
+        )
+
+        # タイトル文字
+        title_surf = self.font.render(
+            "こうかずきんの冒険", True, RED_ACCENT
+        )
+        title_rect = title_surf.get_rect(
+            center=(SCREEN_WIDTH // 2 - 100, 105)
+        )
+        surface.blit(title_surf, title_rect)
+        surface.blit(self.character_img, (740, 60))
+
+        # 開始ボタン
+        self.start_button.draw(surface, self.font)
+        #難易度ボタン
+        self.normal_button.draw(surface, self.font)
+        self.hard_button.draw(surface, self.font)
+        self.hole_button.draw(surface, self.font)
+        self.emeny_button.draw(surface, self.font)
+
 
 
 class Maze:
@@ -334,6 +523,7 @@ class Game:
 
         self.player.reset(self.start)
         self.queue.clear()
+        self.message = ""
 
     def gameover(self):
         self.is_gameover = False
@@ -342,6 +532,9 @@ class Game:
         self.step_index = 0
         self.timer = 0
         self.message = ""
+        for enemy in self.enemies:
+            enemy.reset()
+        self.maze.keys_and_doors.reset()
 
     def exit_game(self) -> None:
         self.quit_requested = True
@@ -473,6 +666,7 @@ class Game:
     def draw(self, screen: pygame.Surface) -> None:
         if self.cleared:
             self.draw_clear(screen)
+            return
         if self.is_gameover:
             self.draw_gameover(screen)
             return
@@ -599,22 +793,41 @@ class Game:
 
 
 def main():
+    game_started = False
+    start_scene = StartScene(get_font(36))
+
     pygame.display.set_caption("こうか頭巾")
-    # game = Game(maps.MAPS[0])の中身の数字を2にするとランダムマップに切り替えられます
-    # 0なら通常モード
-    seleted_map = maps.MAPS[2]
-    game = Game(seleted_map.grid, KeysAndDoors.from_serialized_data(seleted_map.key_door_data), seleted_map.enemies)
-    screen = pygame.display.set_mode((game.width, game.height))
+    game = None
+
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     clock = pygame.time.Clock()
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
-            game.handle_event(event)
-        if game.quit_requested:
-            return
-        game.update(clock.get_time())
-        game.draw(screen)
+        #     game.handle_event(event)
+
+        # game.update(clock.get_time())
+        # game.draw(screen)
+
+            if not game_started:
+                difficulty = start_scene.handle_event(event)
+                if difficulty is not None:
+                    selected_map = maps.MAPS[difficulty]
+                    game = Game(selected_map.grid, KeysAndDoors.from_serialized_data(selected_map.key_door_data), selected_map.enemies)
+                    screen = pygame.display.set_mode((game.width, game.height))
+                    game_started = True
+            else:
+                game.handle_event(event)
+                if game.quit_requested:
+                    return
+        if not game_started:
+            start_scene.draw(screen)
+        else:
+            game.update(clock.get_time())
+            game.draw(screen)
+
         pygame.display.update()
         clock.tick(FPS)
 
