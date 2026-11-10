@@ -127,6 +127,13 @@ class Game:
         self.timer = 0
         self.message = ""
 
+        self.gameover = False
+
+        self.gameover_font = get_font(64)
+
+        self.gameover_image = pygame.transform.smoothscale(
+            pygame.image.load("fig/オオカミ.png"), (160, 160)
+        )
         self.maze_w = self.maze.w * CELL
         self.width = self.maze_w + PANEL_W
         self.height = max(self.maze.h * CELL, MIN_H)
@@ -161,6 +168,20 @@ class Game:
         self.queue_rows = max(1, (by - MARGIN - self.queue_top) // QUEUE_H)
         self.max_queue = self.queue_rows * QUEUE_COLS
 
+        self.retry_button = Button(
+            pygame.Rect(self.width // 2 - 150, self.height // 2 + 120,
+                        140, 40),
+            "もう一度遊ぶ", (70, 170, 90),
+            self.retry, self.font
+        )
+
+        self.exit_button = Button(
+            pygame.Rect(self.width // 2 + 10, self.height // 2 + 120,
+                        140, 40),
+            "終了", (210, 80, 80),
+            self.exit_game, self.font
+        )
+
     def queue_rect(self, i: int) -> pygame.Rect:
         """行動リストの i 番目のブロックの位置（縦につなげ、あふれたら次の列へ）"""
         col, row = divmod(i, self.queue_rows)
@@ -186,6 +207,17 @@ class Game:
         self.timer = 0
         self.message = ""
 
+    def retry(self):
+        self.gameover = False
+        self.player.reset(self.start)
+        self.running = False
+        self.step_index = 0
+        self.timer = 0
+        self.message = ""
+
+    def exit_game(self):
+        pygame.event.post(pygame.event.Event(pygame.QUIT))
+
     # ---------- フック（追加機能はここを拡張する） ----------
     def on_enter(self, tile: str) -> None:
         """プレイヤーが1手動いた後に、今いるマスの文字を受け取って呼ばれる"""
@@ -199,10 +231,15 @@ class Game:
     def on_finish(self) -> None:
         """ゴールせずに行動リストを最後まで実行したときに呼ばれる"""
         self.running = False
-        self.message = "ゴールに届かなかった…"
+        self.gameover = True
 
     # ---------- 毎フレームの処理 ----------
     def handle_event(self, event: pygame.event.Event) -> None:
+        if self.gameover:
+            self.retry_button.handle(event)
+            self.exit_button.handle(event)
+            return
+
         for btn in self.buttons:
             btn.handle(event)
 
@@ -226,15 +263,46 @@ class Game:
         elif self.step_index >= len(self.queue):
             self.on_finish()
 
+    def draw_gameover(self, screen: pygame.Surface) -> None:
+        screen.fill((30, 30, 40))
+
+        image_rect = self.gameover_image.get_rect(
+            center=(self.width // 2, self.height // 2 - 130)
+        )
+        screen.blit(self.gameover_image, image_rect)
+
+        title = self.gameover_font.render(
+            "GAME OVER", True, (255, 60, 60)
+        )
+        title_rect = title.get_rect(
+            center=(self.width // 2, self.height // 2 + 5)
+        )
+        screen.blit(title, title_rect)
+
+        self.retry_button.draw(screen)
+        self.exit_button.draw(screen)
+
     def draw(self, screen: pygame.Surface) -> None:
+        if self.gameover:
+            self.draw_gameover(screen)
+            return
+
         screen.fill((30, 30, 40))
         self.maze.draw(screen)
         self.player.draw(screen)
         self._draw_panel(screen)
+
         if self.message:
-            txt = self.big_font.render(self.message, True, (255, 60, 60))
-            rect = txt.get_rect(center=(self.maze_w // 2, self.maze.h * CELL // 2))
-            pygame.draw.rect(screen, (255, 255, 255), rect.inflate(30, 16), border_radius=10)
+            txt = self.big_font.render(
+                self.message, True, (255, 60, 60)
+            )
+            rect = txt.get_rect(
+                center=(self.maze_w // 2, self.maze.h * CELL // 2)
+            )
+            pygame.draw.rect(
+                screen, (255, 255, 255),
+                rect.inflate(30, 16), border_radius=10
+            )
             screen.blit(txt, rect)
 
     def _draw_panel(self, screen: pygame.Surface) -> None:
