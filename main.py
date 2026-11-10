@@ -4,6 +4,7 @@ import sys
 
 import actions
 import maps
+import time
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -15,10 +16,10 @@ FPS = 60
 
 BLOCK_W = 140  # ブロックの幅
 BLOCK_H = 34  # ブロックの高さ
-QUEUE_W = 92  # 行動リストに並ぶブロックの幅
-QUEUE_H = 26  # 行動リストに並ぶブロックの高さ
-QUEUE_COLS = 3  # 行動リストの列数
-MARGIN = 12
+QUEUE_W = 60  # 行動リストに並ぶブロックの幅
+QUEUE_H = 20  # 行動リストに並ぶブロックの高さ
+QUEUE_COLS = 5  # 行動リストの列数
+MARGIN = 2
 
 
 def get_font(size: int) -> pygame.font.Font:
@@ -27,7 +28,7 @@ def get_font(size: int) -> pygame.font.Font:
 
 
 def draw_block(screen: pygame.Surface, rect: pygame.Rect, color: tuple, label: str,
-               font: pygame.font.Font, highlight: bool = False) -> None:
+                font: pygame.font.Font, highlight: bool = False) -> None:
     """スクラッチ風のブロックを描く（上端の凸で前のブロックとつながって見える）"""
     tab = pygame.Rect(rect.x + 14, rect.y - 5, 18, 6)
     pygame.draw.rect(screen, color, tab, border_radius=2)
@@ -112,6 +113,62 @@ class Button:
         color = self.color if self.enabled else (150, 150, 150)
         draw_block(screen, self.rect, color, self.label, self.font)
 
+class AudioPlayer:
+    """指定ディレクトリ内の音声ファイルを再生するクラス"""
+
+    def __init__(self, music_dir: str, volume: float = 0.5):
+        """AudioPlayerオブジェクトの初期化
+            music_dir (str): 音声ファイルが保存されているディレクトリ名
+            volume (float): 初期音量(0.0～1.0)
+            mp3, wav, ogg以外だと正しく認識しないらしいので注意
+        """
+        pygame.mixer.init()
+        self.music_dir = music_dir
+        self.volume = volume
+
+        self.files = [
+            os.path.join(music_dir, f)
+            for f in os.listdir(music_dir)
+            if f.lower().endswith((".mp3", ".wav", ".ogg"))
+            ]
+
+        self.index = 0
+        pygame.mixer.music.set_volume(self.volume)
+
+    def play(self):
+        """選択されている音声ファイルを再生
+        音声ファイルが存在しない場合は何もしない
+        ループ再生にしてある
+        """
+        if not self.files:
+            return
+
+        pygame.mixer.music.load(self.files[self.index])
+        pygame.mixer.music.play(-1)
+
+    def next(self):
+        """次の音声ファイルへ切り替える
+        最終ファイルの場合は先頭のファイルに
+        """
+        if not self.files:
+            return
+
+        self.index = (self.index + 1) % len(self.files)
+        self.play()
+
+    def volume_up(self):
+        """音量を0.1(10%)上げる
+        音量の上限は1.0(100%)
+        """
+        self.volume = min(1.0, self.volume + 0.1)
+        pygame.mixer.music.set_volume(self.volume)
+
+    def volume_down(self):
+        """音量を0.1(10%)下げる
+        音量の下限は0.0(100%)
+        """
+        self.volume = max(0.0, self.volume - 0.1)
+        pygame.mixer.music.set_volume(self.volume)
 
 class Game:
     """ゲーム全体の状態をまとめるクラス（行動関数はこれを受け取る）"""
@@ -135,7 +192,10 @@ class Game:
         self.big_font = get_font(48)
         self.buttons: list[Button] = []
         self.palette_buttons: list[Button] = []
+        self.audio = AudioPlayer("music", 0.3)
+        self.audio.play()
         self._layout()
+
 
     # ---------- 画面の配置 ----------
     def _layout(self) -> None:
@@ -154,13 +214,27 @@ class Game:
         by = self.height - BLOCK_H - MARGIN
         self.delete_button = Button(pygame.Rect(px, by, BLOCK_W, BLOCK_H), "削除",
                                     (210, 80, 80), self.pop, self.font)
-        self.run_button = Button(pygame.Rect(px + BLOCK_W + MARGIN, by, BLOCK_W, BLOCK_H), "実行",
-                                 (70, 170, 90), self.run, self.font)
+        self.run_button = Button(pygame.Rect(px + BLOCK_W + MARGIN, by, BLOCK_W, BLOCK_H), "実行", (70, 170, 90), self.run, self.font)
         self.buttons = self.palette_buttons + [self.delete_button, self.run_button]
 
         # 行動リストに並べられる最大数
         self.queue_rows = max(1, (by - MARGIN - self.queue_top) // QUEUE_H)
         self.max_queue = self.queue_rows * QUEUE_COLS
+
+
+        # 音量調整機能
+        volume_y = by - 60
+
+        # 音量ボタンの位置指定
+        self.vol_down_button = Button(pygame.Rect(px - 240, volume_y + 60, 70, BLOCK_H), "音量-", (80, 80, 200), self.audio.volume_down, self.font)
+
+        self.vol_up_button = Button(pygame.Rect(px -160, volume_y + 60, 70, BLOCK_H), "音量+", (80, 200, 80), self.audio.volume_up, self.font)
+
+        # 音量ボタンを追加
+        self.buttons += [
+        self.vol_down_button,
+        self.vol_up_button
+        ]
 
     def queue_rect(self, i: int) -> pygame.Rect:
         """行動リストの i 番目のブロックの位置（縦につなげ、あふれたら次の列へ）"""
@@ -248,7 +322,7 @@ class Game:
         px = self.maze_w + MARGIN
         screen.blit(self.font.render("ブロックを選ぶ", True, (40, 40, 40)), (px, 10))
         screen.blit(self.font.render(f"行動リスト ({len(self.queue)}/{self.max_queue})", True,
-                                     (40, 40, 40)), (px, self.queue_top - 32))
+                                    (40, 40, 40)), (px, self.queue_top - 32))
         for i, act in enumerate(self.queue):
             current = self.running and i == self.step_index
             draw_block(screen, self.queue_rect(i), act.color, act.label, self.font, highlight=current)
@@ -256,9 +330,12 @@ class Game:
             btn.draw(screen)
 
 
+
 def main():
     pygame.display.set_caption("こうか頭巾")
-    game = Game(maps.MAPS[0])
+    # game = Game(maps.MAPS[1])の中身の数字を1にするとランダムマップに切り替えられます
+    # 0なら通常モード
+    game = Game(maps.MAPS[1])
     screen = pygame.display.set_mode((game.width, game.height))
     clock = pygame.time.Clock()
     while True:
