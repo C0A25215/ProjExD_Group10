@@ -16,10 +16,10 @@ FPS = 60
 
 BLOCK_W = 140  # ブロックの幅
 BLOCK_H = 34  # ブロックの高さ
-QUEUE_W = 92  # 行動リストに並ぶブロックの幅
-QUEUE_H = 26  # 行動リストに並ぶブロックの高さ
-QUEUE_COLS = 3  # 行動リストの列数
-MARGIN = 12
+QUEUE_W = 60  # 行動リストに並ぶブロックの幅
+QUEUE_H = 20  # 行動リストに並ぶブロックの高さ
+QUEUE_COLS = 5  # 行動リストの列数
+MARGIN = 2
 
 
 def get_font(size: int) -> pygame.font.Font:
@@ -328,7 +328,9 @@ class Game:
 
 def main():
     pygame.display.set_caption("こうか頭巾")
-    game = Game(maps.MAPS[0])
+    # game = Game(maps.MAPS[1])の中身の数字を1にするとランダムマップに切り替えられます
+    # 0なら通常モード
+    game = Game(maps.MAPS[1])
     screen = pygame.display.set_mode((game.width, game.height))
     clock = pygame.time.Clock()
     while True:
