@@ -4,7 +4,8 @@ import sys
 
 import actions
 import maps
-import time
+from keys_and_doors import KeysAndDoors, MAP3_KD
+from enemy import Enemy, TraceEnemy, MAP3_ENEMIES
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -42,10 +43,11 @@ def draw_block(screen: pygame.Surface, rect: pygame.Rect, color: tuple, label: s
 class Maze:
     """迷路（maps.py の2次元リスト）を扱うクラス"""
 
-    def __init__(self, grid: list[list[str]]):
+    def __init__(self, grid: list[list[str]], keys_and_doors: KeysAndDoors):
         self.grid = [maps.Tile.from_str(tiles) for tiles in grid]  # 元のマップを書き換えないようにコピー
         self.h = len(self.grid)
         self.w = len(self.grid[0])
+        self.keys_and_doors = keys_and_doors
 
     def find(self, ch: str) -> tuple[int, int]:
         """文字 ch のマスの座標 (x, y) を返す"""
@@ -61,6 +63,8 @@ class Maze:
     def is_walkable(self, x: int, y: int) -> bool:
         if not (0 <= x < self.w and 0 <= y < self.h):
             return False
+        if not self.keys_and_doors.is_walkable(x, y):
+            return False
         return self.grid[y][x].walkable
 
     def draw(self, screen: pygame.Surface) -> None:
@@ -69,6 +73,7 @@ class Maze:
                 rect = pygame.Rect(x * CELL, y * CELL, CELL, CELL)
                 pygame.draw.rect(screen, c.color, rect)
                 pygame.draw.rect(screen, (200, 200, 190), rect, 1)
+        self.keys_and_doors.draw(screen)
 
 
 class Player:
@@ -173,9 +178,9 @@ class AudioPlayer:
 class Game:
     """ゲーム全体の状態をまとめるクラス（行動関数はこれを受け取る）"""
 
-    def __init__(self, grid: list[list[str]]):
-        self.maze = Maze(grid)
-        self.maze_bk = Maze(grid)
+    def __init__(self, grid: list[list[str]], keys_and_doors: KeysAndDoors, enemies: list[Enemy]):
+        self.maze = Maze(grid, keys_and_doors)
+        self.maze_bk = Maze(grid, keys_and_doors)
         self.start = self.maze.find("S")
         self.goal = self.maze.find("G")
         self.player = Player(self.start)
@@ -184,6 +189,11 @@ class Game:
         self.step_index = 0  # 次に実行する行動の番号
         self.timer = 0
         self.message = ""
+        for enemy in enemies:
+            if isinstance(enemy, TraceEnemy):
+                enemy.set_initial_pos(self.start)
+                enemy.set_maze(self.maze)
+        self.enemies: list[Enemy] = enemies
 
         self.maze_w = self.maze.w * CELL
         self.width = self.maze_w + PANEL_W
@@ -256,6 +266,11 @@ class Game:
         if not self.queue:
             return
         self.player.reset(self.start)
+        for enemy in self.enemies:
+            enemy.reset()
+            if isinstance(enemy, TraceEnemy):
+                enemy.set_actions([act.kind for act in self.queue])
+        self.maze.keys_and_doors.reset()
         self.running = True
         self.step_index = 0
         self.timer = 0
@@ -280,6 +295,11 @@ class Game:
         self.running = False
         self.message = "ゴールに届かなかった…"
 
+    def on_killed(self) -> None:
+        """敵に捕まったときに呼ばれる"""
+        self.running = False
+        self.message = "敵に捕まった…"
+
     # ---------- 毎フレームの処理 ----------
     def handle_event(self, event: pygame.event.Event) -> None:
         for btn in self.buttons:
@@ -297,11 +317,24 @@ class Game:
         if self.timer < STEP_MS:
             return
         self.timer = 0
-        self.queue[self.step_index].func(self)
+        match self.queue[self.step_index].kind:
+            case actions.ActionKind.MoveUp:
+                self.player.move(0, -1, self.maze)
+            case actions.ActionKind.MoveDown:
+                self.player.move(0, 1, self.maze)
+            case actions.ActionKind.MoveLeft:
+                self.player.move(-1, 0, self.maze)
+            case actions.ActionKind.MoveRight:
+                self.player.move(1, 0, self.maze)
         self.step_index += 1
+        self.maze.keys_and_doors.on_visit(self.player.x, self.player.y)
+        for enemy in self.enemies:
+            enemy.step()
         self.on_enter(self.maze.grid[self.player.y][self.player.x], self.player.x, self.player.y)
         if (self.player.x, self.player.y) == self.goal:
             self.on_goal()
+        elif any((self.player.x, self.player.y) == enemy.pos for enemy in self.enemies):
+            self.on_killed()
         elif self.step_index >= len(self.queue):
             self.on_finish()
 
@@ -309,6 +342,8 @@ class Game:
         screen.fill((30, 30, 40))
         self.maze.draw(screen)
         self.player.draw(screen)
+        for enemy in self.enemies:
+            enemy.draw(screen)
         self._draw_panel(screen)
         if self.message:
             txt = self.big_font.render(self.message, True, (255, 60, 60))
@@ -333,9 +368,10 @@ class Game:
 
 def main():
     pygame.display.set_caption("こうか頭巾")
-    # game = Game(maps.MAPS[1])の中身の数字を1にするとランダムマップに切り替えられます
+    # game = Game(maps.MAPS[0])の中身の数字を2にするとランダムマップに切り替えられます
     # 0なら通常モード
-    game = Game(maps.MAPS[1])
+    seleted_map = maps.MAPS[0]
+    game = Game(seleted_map.grid, KeysAndDoors.from_serialized_data(seleted_map.key_door_data), seleted_map.enemies)
     screen = pygame.display.set_mode((game.width, game.height))
     clock = pygame.time.Clock()
     while True:

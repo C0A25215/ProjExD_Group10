@@ -1,4 +1,8 @@
 import random
+from dataclasses import dataclass
+
+from enemy import Enemy, MAP3_ENEMIES
+from keys_and_doors import MAP3_KD
 
 # 迷路の定義
 # 各マップは2次元リスト（要素は1文字の文字列）
@@ -144,5 +148,16 @@ MAP2 = generator.generate()
 # 生成された迷路をターミナルへ出力
 generator.print_map()
 
+@dataclass
+class MapData:
+    grid: list[list[str]]
+    key_door_data: str
+    enemies: list[Enemy]
+
 # 使用するマップの一覧（新しいマップはここに追加する）
-MAPS = [MAP1, MAP_WHOLE, MAP2]
+MAPS = [
+    MapData(MAP1, "", []),
+    MapData(MAP_WHOLE, "", []),
+    MapData(MAP2, "", []),
+    MapData(MAP1, MAP3_KD, MAP3_ENEMIES),
+]
