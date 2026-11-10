@@ -202,7 +202,7 @@ class Game:
         self.gameover_font = get_font(64)
 
         self.gameover_image = pygame.transform.smoothscale(
-            pygame.image.load("fig/オオカミ.png"), (160, 160)
+            pygame.image.load("fig/enemy1.png"), (160, 160)
         )
         self.maze_w = self.maze.w * CELL
         self.width = self.maze_w + PANEL_W
@@ -602,7 +602,7 @@ def main():
     pygame.display.set_caption("こうか頭巾")
     # game = Game(maps.MAPS[0])の中身の数字を2にするとランダムマップに切り替えられます
     # 0なら通常モード
-    seleted_map = maps.MAPS[1]
+    seleted_map = maps.MAPS[2]
     game = Game(seleted_map.grid, KeysAndDoors.from_serialized_data(seleted_map.key_door_data), seleted_map.enemies)
     screen = pygame.display.set_mode((game.width, game.height))
     clock = pygame.time.Clock()
