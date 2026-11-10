@@ -15,6 +15,8 @@ MIN_H = 600  # 画面の最小の高さ
 STEP_MS = 300  # 実行時の1手の間隔（ミリ秒）
 FPS = 60
 
+TIMELIMIT = 60  # 制限時間（秒）
+
 BLOCK_W = 140  # ブロックの幅
 BLOCK_H = 34  # ブロックの高さ
 QUEUE_W = 60  # 行動リストに並ぶブロックの幅
@@ -393,6 +395,9 @@ class Game:
         self.gameover_image = pygame.transform.smoothscale(
             pygame.image.load("fig/enemy1.png"), (160, 160)
         )
+        self.remainingtime = TIMELIMIT  # 残り時間を制限時間に設定する
+        self.timeup = False   # 制限時間切れかどうかを管理する
+
         self.maze_w = self.maze.w * CELL
         self.width = self.maze_w + PANEL_W
         self.height = max(self.maze.h * CELL, MIN_H)
@@ -434,7 +439,7 @@ class Game:
     # ---------- 画面の配置 ----------
     def _layout(self) -> None:
         px = self.maze_w + MARGIN
-        y = 40
+        y = 85
         # パレット: actions.ACTIONS から自動で並べる（2列）
         for i, act in enumerate(actions.ACTIONS):
             col, row = i % 2, i // 2
@@ -445,11 +450,15 @@ class Game:
         self.queue_top = y + rows * (BLOCK_H + MARGIN) + 40
 
         # 削除・実行ボタン（画面下）
+        button_w = 90 #実行削除ボタンだけ変更
         by = self.height - BLOCK_H - MARGIN
-        self.delete_button = Button(pygame.Rect(px, by, BLOCK_W, BLOCK_H), "削除",
+        self.delete_button = Button(pygame.Rect(px, by, button_w, BLOCK_H), "削除",
                                     (210, 80, 80), self.pop, self.font)
-        self.run_button = Button(pygame.Rect(px + BLOCK_W + MARGIN, by, BLOCK_W, BLOCK_H), "実行", (70, 170, 90), self.run, self.font)
-        self.buttons = self.palette_buttons + [self.delete_button, self.run_button]
+        self.clear_button = Button(pygame.Rect(px + button_w + MARGIN, by, button_w, BLOCK_H), "全削除",
+                                    (180, 60, 60), self.clear, self.font)
+        self.run_button = Button(pygame.Rect(px + (button_w + MARGIN) * 2, by, button_w, BLOCK_H), "実行",
+                                    (70, 170, 90), self.run, self.font)
+        self.buttons = self.palette_buttons + [self.delete_button, self.clear_button,self.run_button]
 
         # 行動リストに並べられる最大数
         self.queue_rows = max(1, (by - MARGIN - self.queue_top) // QUEUE_H)
@@ -498,6 +507,9 @@ class Game:
         if self.queue:
             self.queue.pop()
 
+    def clear(self) -> None:
+        self.queue.clear() # 全削除
+
     def run(self) -> None:
         """スタートに戻して行動リストを先頭から実行する"""
         if not self.queue:
@@ -525,6 +537,11 @@ class Game:
         self.queue.clear()
         self.message = ""
 
+        self.remainingtime = TIMELIMIT  # 残り時間を制限時間に設定する
+        self.timeup = False   # 制限時間切れかどうかを管理する
+
+        
+
     def gameover(self):
         self.is_gameover = False
         self.player.reset(self.start)
@@ -535,6 +552,8 @@ class Game:
         for enemy in self.enemies:
             enemy.reset()
         self.maze.keys_and_doors.reset()
+        self.remainingtime = TIMELIMIT  # 残り時間を制限時間に設定する
+        self.timeup = False   # 制限時間切れかどうかを管理する
 
     def exit_game(self) -> None:
         self.quit_requested = True
@@ -605,9 +624,18 @@ class Game:
     def update(self, dt: int) -> None:
         if self.cleared:
             return
+        # 制限時間を減らす
+        if not self.timeup and not self.running and not self.message:  # 制限時間内で、実行中ではなく、メッセージも表示されていない場合
+            self.remainingtime -= dt / 1000  # 経過時間（ミリ秒）を秒に変換して残り時間から引く
+            if self.remainingtime <= 0:  # 残り時間が0以下になった場合
+                self.remainingtime = 0  # 残り時間を0秒にする
+                self.timeup = True  # 制限時間切れにする
+                self.is_gameover = True
+
         for btn in self.palette_buttons:
             btn.enabled = not self.running
         self.delete_button.enabled = not self.running
+        self.clear_button.enabled = not self.running
         self.run_button.enabled = not self.running and bool(self.queue)
 
         if not self.running:
@@ -782,6 +810,11 @@ class Game:
         pygame.draw.rect(screen, (245, 245, 250), panel)
         px = self.maze_w + MARGIN
         screen.blit(self.font.render("ブロックを選ぶ", True, (40, 40, 40)), (px, 10))
+
+        # 残り時間表示
+        time_text = self.font.render(f"残り時間：{int(self.remainingtime)}秒", True, (40, 40, 40))
+        screen.blit(time_text, (px, 40))
+
         screen.blit(self.font.render(f"行動リスト ({len(self.queue)}/{self.max_queue})", True,
                                     (40, 40, 40)), (px, self.queue_top - 32))
         for i, act in enumerate(self.queue):
