@@ -304,6 +304,28 @@ class Game:
     def handle_event(self, event: pygame.event.Event) -> None:
         for btn in self.buttons:
             btn.handle(event)
+        if event.type == pygame.KEYDOWN and not self.running:#実行されてない場合キーボードが押されてら処理する
+            key_actions ={
+                pygame.K_UP:"↑ 上",#キーボードの上矢印が浅れた場合actions.pyの↑ 上のブロックを追加する
+                pygame.K_DOWN:"↓ 下",#キーボードの下矢印が浅れた場合actions.pyの↓ 下のブロックを追加する
+                pygame.K_LEFT:"← 左",#キーボードの左矢印が浅れた場合actions.pyの← 左のブロックを追加する
+                pygame.K_RIGHT:"→ 右"#キーボードの右矢印が浅れた場合actions.pyの→ 右のブロックを追加する
+            }
+            if event.key in key_actions:
+                direction = key_actions[event.key]#対応するキーを取得して代入
+        
+                for act in actions.ACTIONS:
+                    if act.label == direction:#行動とキーが一緒なら
+                        self.add(act)#行動を追加する
+                        break
+
+        if event.type == pygame.KEYDOWN and not self.running:
+            if event.key == pygame.K_RETURN:
+                self.run()
+
+        if event.type == pygame.KEYDOWN and not self.running:
+            if event.key == pygame.K_BACKSPACE:
+                self.pop()
 
     def update(self, dt: int) -> None:
         for btn in self.palette_buttons:
